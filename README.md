@@ -1,5 +1,5 @@
 # qtThreads
-My take on a test task using multithreating
+My take on a test task using multithreating (under constrution)
 
 ## The task
 - Create 2 threads from main thread; 
