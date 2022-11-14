@@ -14,7 +14,6 @@ public:
 protected:
     void run() override {
         m_string->append(QString::number(m_num));
-        qDebug() << m_string << " from " << this << " m_string address: " << &m_string;
         emit ResultReady();
     }
 private:
@@ -30,22 +29,26 @@ class ThreadContainer : public QObject {
 public:
     ThreadContainer(unsigned int numThreads = 2)
     {
-        m_thread1 = new WorkerThread(std::ref(m_string), 1);
-        m_thread2 = new WorkerThread(std::ref(m_string), 2);
-
-        connect(m_thread1, SIGNAL(ResultReady()), m_thread2, SLOT(start()));
-        connect(m_thread2, SIGNAL(ResultReady()), this, SLOT(onAllThreadsCompleted()));
+        m_threads.reserve(numThreads);
+        for(qsizetype i = 0; i < numThreads; ++i){
+            m_threads.emplaceBack(new WorkerThread(std::ref(m_string), i + 1));
+            if(i > 0 && i != numThreads - 1)
+                connect(m_threads.at(i-1), SIGNAL(ResultReady()), m_threads.at(i), SLOT(start()));
+        }
+        connect(m_threads.back(), SIGNAL(ResultReady()), this, SLOT(onAllThreadsCompleted()));
     }
 
     ~ThreadContainer(){
-        m_thread1->quit();
-        m_thread1->wait();
-        m_thread2->quit();
-        m_thread2->wait();
+        for (auto &thread : m_threads) {
+            thread->quit();
+            thread->wait();
+        }
+        qDebug() << m_string << Qt::endl;
+        qDeleteAll(m_threads);
     }
 
     void StartThreads(){
-        m_thread1->start();
+        m_threads.front()->start();
     }
 
     QString GetString(){
@@ -57,19 +60,14 @@ signals:
 
 public slots:
     void onAllThreadsCompleted(){
-        m_thread1->quit();
-        m_thread1->wait();
-        m_thread2->quit();
-        m_thread2->wait();
+        qDebug() << "threads completed";
         emit ThreadsCompleted();
     }
 
 private:
-    int m_num;
     QString m_string;
 
-    WorkerThread *m_thread1;
-    WorkerThread *m_thread2;
+    QList<WorkerThread*> m_threads;
 };
 
 #endif // THREADS_H
