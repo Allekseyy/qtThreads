@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     timer.setSingleShot(true);
 
     QEventLoop loop;
-    ThreadContainer threads;
+    ThreadContainer threads(10);
 
     QObject::connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit()));
     QObject::connect(&threads, SIGNAL(ThreadsCompleted()), &loop, SLOT(exit()) );
